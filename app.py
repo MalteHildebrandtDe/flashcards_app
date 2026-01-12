@@ -241,6 +241,7 @@ class FlashcardApp:
 
         self.current: Card | None = None
         self.answer_visible = False
+        self.previous_id: str | None = None
 
         self.root = tk.Tk()
         self.root.title("Flashcards")
@@ -273,18 +274,18 @@ class FlashcardApp:
         btn_frame = tk.Frame(self.root)
         btn_frame.pack(anchor="w", pady=(8, 0))
 
-        self.show_btn = tk.Button(btn_frame, text="Show answer (Enter)", command=self.show_answer)
+        self.show_btn = tk.Button(btn_frame, text="Show answer (Enter/Space)", command=self.show_answer)
         self.show_btn.grid(row=0, column=0, padx=(0, 8))
 
-        self.correct_btn = tk.Button(btn_frame, text="Correct (→)", command=self.mark_correct)
+        self.correct_btn = self.make_arrow_button(btn_frame, "right", self.mark_correct)
         self.correct_btn.grid(row=0, column=1, padx=(0, 8))
 
-        self.incorrect_btn = tk.Button(btn_frame, text="Wrong (←)", command=self.mark_incorrect)
+        self.incorrect_btn = self.make_arrow_button(btn_frame, "left", self.mark_incorrect)
         self.incorrect_btn.grid(row=0, column=2)
 
         self.help_label = tk.Label(
             self.root,
-            text="Enter: show answer | → correct | ← wrong",
+            text="Enter/Space: show answer | Right arrow: correct | Left arrow: wrong",
             font=("Helvetica", 10),
             fg="#555",
         )
@@ -295,8 +296,46 @@ class FlashcardApp:
         Bind keyboard shortcuts for answer reveal and grading.
         """
         self.root.bind("<Return>", lambda _event: self.show_answer())
+        self.root.bind("<space>", lambda _event: self.show_answer())
         self.root.bind("<Right>", lambda _event: self.mark_correct())
         self.root.bind("<Left>", lambda _event: self.mark_incorrect())
+
+    def make_arrow_button(self, parent: tk.Widget, direction: str, on_click) -> tk.Canvas:
+        """
+        Draw a simple arrow button on a canvas and bind click/keys.
+
+        Args:
+            parent: parent widget to attach to.
+            direction: "left" or "right".
+            on_click: callback to invoke on click/enter/space.
+
+        Returns:
+            Canvas configured as a clickable arrow button.
+        """
+        width, height = 72, 36
+        bg, fg = "#f0f0f0", "#222"
+        canvas = tk.Canvas(parent, width=width, height=height, highlightthickness=0, bg=bg)
+        canvas.create_rectangle(1, 1, width - 2, height - 2, outline="#888", width=1, fill=bg)
+
+        if direction.lower() == "right":
+            arrow_points = [
+                (width * 0.35, height * 0.25),
+                (width * 0.35, height * 0.75),
+                (width * 0.75, height * 0.5),
+            ]
+        else:
+            arrow_points = [
+                (width * 0.65, height * 0.25),
+                (width * 0.65, height * 0.75),
+                (width * 0.25, height * 0.5),
+            ]
+
+        canvas.create_polygon(arrow_points, fill=fg, outline=fg)
+        canvas.configure(cursor="hand2", takefocus=1)
+        canvas.bind("<Button-1>", lambda _event: on_click())
+        canvas.bind("<Return>", lambda _event: on_click())
+        canvas.bind("<space>", lambda _event: on_click())
+        return canvas
 
     def show_answer(self) -> None:
         """
@@ -342,7 +381,22 @@ class FlashcardApp:
             messagebox.showinfo("No cards", "No questions found.")
             self.root.destroy()
             return
-        self.current = choose_card(self.cards, self.progress)
+        # Avoid showing the same card twice in a row when multiple cards exist.
+        last_id = self.previous_id
+        attempts = 0
+        candidate = None
+        while True:
+            candidate = choose_card(self.cards, self.progress)
+            attempts += 1
+            if len(self.cards) == 1:
+                break
+            if candidate.card_id != last_id:
+                break
+            if attempts >= 5:
+                break
+
+        self.current = candidate
+        self.previous_id = candidate.card_id if candidate else None
         self.answer_visible = False
         self.card_id_label.config(text=f"Question {self.current.card_id}")
         self.question_label.config(text=self.current.question)
