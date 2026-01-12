@@ -3,6 +3,6 @@ __pycache__/
 build/
 dist/
 *.spec
-.fragen_progress.json
+.flashcards_progress.json
 .flashcards_app_config.json
 

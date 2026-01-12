@@ -1,6 +1,6 @@
 # Flashcard app (Markdown)
 
-Small Tkinter desktop app to learn open questions from a Markdown file. Stores progress as `.fragen_progress.json` next to the deck. No console needed when built.
+Small Tkinter desktop app to learn open questions from a Markdown file. Stores progress as `.flashcards_progress.json` next to the deck. No console needed when built.
 
 ## Files
 - [flashcards_app/app.py](flashcards_app/app.py): GUI, parser, spaced-repetition weighting.
@@ -14,7 +14,7 @@ Small Tkinter desktop app to learn open questions from a Markdown file. Stores p
 1. Python 3.9+ (optional venv: `python -m venv .venv && source .venv/bin/activate`, Windows: `venv\Scripts\activate`).
 2. Start: `python app.py /path/to/questions.md` or simply `python app.py` and pick via dialog.
 3. Keys: Enter = show answer, Right = correct, Left = wrong. Buttons do the same.
-4. Progress: written to `.fragen_progress.json` next to the Markdown deck.
+4. Progress: written to `.flashcards_progress.json` next to the Markdown deck.
 
 ## Build (PyInstaller)
 1. `pip install pyinstaller`

@@ -35,6 +35,7 @@ from tkinter import filedialog, messagebox
 
 QUESTION_PATTERN = re.compile(r"\*\*(?:Frage|Question)\s+([^*]+)\*\*", re.IGNORECASE)
 ANSWER_SPLIT_PATTERN = re.compile(r"\*\*(?:Antwort|Answer):?\*\*|(?:Antwort|Answer):", re.IGNORECASE)
+PROGRESS_FILENAME = ".flashcards_progress.json"
 CONFIG_PATH = Path.home() / ".flashcards_app_config.json"
 
 
@@ -91,10 +92,10 @@ def progress_path_for(md_path: Path) -> Path:
         md_path: Path to the markdown deck.
 
     Returns:
-        Path to `.fragen_progress.json` next to the deck.
+        Path to `.flashcards_progress.json` next to the deck.
     """
     # Store progress JSON next to the deck.
-    return md_path.parent / ".fragen_progress.json"
+    return md_path.parent / PROGRESS_FILENAME
 
 
 def load_progress(path: Path) -> Dict[str, Dict[str, int]]:
