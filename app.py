@@ -78,10 +78,32 @@ def parse_markdown(md_path: Path) -> List[Card]:
         else:
             question_text, answer_text = content, "No answer provided."
 
+        answer_text = clean_answer(answer_text)
+
         card_id = match.group(1).strip()
         cards.append(Card(card_id=card_id, question=question_text, answer=answer_text))
 
     return cards
+
+
+def clean_answer(answer_text: str) -> str:
+    """
+    Trim answer text so that subsequent headings or separators are not shown.
+
+    Rules:
+    - Stop before any markdown heading line (starts with '#').
+    - Drop trailing horizontal rules ('---').
+    - Strip surrounding whitespace.
+    """
+    lines = answer_text.splitlines()
+    cleaned: List[str] = []
+    for line in lines:
+        if re.match(r"^\s*#", line):
+            break
+        if line.strip() == "---":
+            break
+        cleaned.append(line)
+    return "\n".join(cleaned).strip()
 
 
 def progress_path_for(md_path: Path) -> Path:
