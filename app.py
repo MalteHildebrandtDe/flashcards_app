@@ -189,13 +189,27 @@ def weight_for(card: Card, progress: Dict[str, Dict[str, int]]) -> int:
         progress: Dict with per-card stats.
 
     Returns:
-        Weight (>=1); higher if more wrong than right.
+        Weight (>=1); unseen cards highest (~10), frequently wrong cards also high (~5-8),
+        cards with more attempts get lower weight even if ratio is equal.
     """
-    # Heavier weight for cards with more incorrect than correct counts.
     stats = progress.get(card.card_id, {"correct": 0, "incorrect": 0})
     incorrect = stats.get("incorrect", 0)
     correct = stats.get("correct", 0)
-    return max(1, 1 + incorrect * 2 - correct)
+    
+    # Prioritize unseen cards heavily
+    if correct == 0 and incorrect == 0:
+        return 10
+    
+    # Base weight from net errors (more wrong = higher)
+    net_errors = incorrect - correct
+    base_weight = 5 + net_errors
+    
+    # Reduce weight as total attempts increase (confidence grows)
+    total_attempts = correct + incorrect
+    confidence_factor = 1.0 / (1.0 + total_attempts * 0.15)
+    adjusted_weight = base_weight * confidence_factor
+    
+    return max(1, int(adjusted_weight))
 
 
 def choose_card(cards: List[Card], progress: Dict[str, Dict[str, int]]) -> Card:
@@ -242,6 +256,7 @@ class FlashcardApp:
         self.current: Card | None = None
         self.answer_visible = False
         self.previous_id: str | None = None
+        self.zoom_factor: float = 1.0
 
         self.root = tk.Tk()
         self.root.title("Flashcards")
@@ -277,65 +292,77 @@ class FlashcardApp:
         self.show_btn = tk.Button(btn_frame, text="Show answer (Enter/Space)", command=self.show_answer)
         self.show_btn.grid(row=0, column=0, padx=(0, 8))
 
-        self.correct_btn = self.make_arrow_button(btn_frame, "right", self.mark_correct)
+        self.correct_btn = tk.Button(btn_frame, text="Correct", command=self.mark_correct)
         self.correct_btn.grid(row=0, column=1, padx=(0, 8))
 
-        self.incorrect_btn = self.make_arrow_button(btn_frame, "left", self.mark_incorrect)
+        self.incorrect_btn = tk.Button(btn_frame, text="Wrong", command=self.mark_incorrect)
         self.incorrect_btn.grid(row=0, column=2)
 
         self.help_label = tk.Label(
             self.root,
-            text="Enter/Space: show answer | Right arrow: correct | Left arrow: wrong",
-            font=("Helvetica", 10),
+            text=(
+                "Keyboard shortcuts:\n"
+                "  • Enter / Space  →  Show answer\n"
+                "  • Right arrow (→)  →  Mark correct\n"
+                "  • Left arrow (←)  →  Mark wrong\n"
+                "  • Ctrl +/-  →  Zoom in/out\n"
+                "  • Ctrl 0  →  Reset zoom"
+            ),
+            font=("Helvetica", 9),
             fg="#555",
+            justify="left",
         )
         self.help_label.pack(anchor="w", pady=(10, 0))
 
     def bind_keys(self) -> None:
         """
-        Bind keyboard shortcuts for answer reveal and grading.
+        Bind keyboard shortcuts for answer reveal, grading, and zoom.
         """
         self.root.bind("<Return>", lambda _event: self.show_answer())
         self.root.bind("<space>", lambda _event: self.show_answer())
         self.root.bind("<Right>", lambda _event: self.mark_correct())
         self.root.bind("<Left>", lambda _event: self.mark_incorrect())
+        
+        # Zoom bindings
+        self.root.bind("<Control-plus>", lambda _event: self.zoom_in())
+        self.root.bind("<Control-equal>", lambda _event: self.zoom_in())  # Ctrl+= (same key as +)
+        self.root.bind("<Control-minus>", lambda _event: self.zoom_out())
+        self.root.bind("<Control-0>", lambda _event: self.zoom_reset())
 
-    def make_arrow_button(self, parent: tk.Widget, direction: str, on_click) -> tk.Canvas:
-        """
-        Draw a simple arrow button on a canvas and bind click/keys.
+    def zoom_in(self) -> None:
+        """Increase zoom factor by 10% up to 1.5x."""
+        self.zoom_factor = min(1.5, self.zoom_factor + 0.1)
+        self.apply_zoom()
 
-        Args:
-            parent: parent widget to attach to.
-            direction: "left" or "right".
-            on_click: callback to invoke on click/enter/space.
+    def zoom_out(self) -> None:
+        """Decrease zoom factor by 10% down to 0.7x."""
+        self.zoom_factor = max(0.7, self.zoom_factor - 0.1)
+        self.apply_zoom()
 
-        Returns:
-            Canvas configured as a clickable arrow button.
-        """
-        width, height = 72, 36
-        bg, fg = "#f0f0f0", "#222"
-        canvas = tk.Canvas(parent, width=width, height=height, highlightthickness=0, bg=bg)
-        canvas.create_rectangle(1, 1, width - 2, height - 2, outline="#888", width=1, fill=bg)
+    def zoom_reset(self) -> None:
+        """Reset zoom to 100%."""
+        self.zoom_factor = 1.0
+        self.apply_zoom()
 
-        if direction.lower() == "right":
-            arrow_points = [
-                (width * 0.35, height * 0.25),
-                (width * 0.35, height * 0.75),
-                (width * 0.75, height * 0.5),
-            ]
-        else:
-            arrow_points = [
-                (width * 0.65, height * 0.25),
-                (width * 0.65, height * 0.75),
-                (width * 0.25, height * 0.5),
-            ]
-
-        canvas.create_polygon(arrow_points, fill=fg, outline=fg)
-        canvas.configure(cursor="hand2", takefocus=1)
-        canvas.bind("<Button-1>", lambda _event: on_click())
-        canvas.bind("<Return>", lambda _event: on_click())
-        canvas.bind("<space>", lambda _event: on_click())
-        return canvas
+    def apply_zoom(self) -> None:
+        """Update all font sizes and widget dimensions based on current zoom factor."""
+        z = self.zoom_factor
+        
+        # Update fonts
+        self.header_label.config(font=("Helvetica", int(10 * z)))
+        self.card_id_label.config(font=("Helvetica", int(14 * z), "bold"))
+        self.question_label.config(font=("Helvetica", int(13 * z)), wraplength=int(850 * z))
+        self.answer_label.config(font=("Helvetica", int(12 * z)), wraplength=int(850 * z))
+        self.status_label.config(font=("Helvetica", int(10 * z)))
+        self.show_btn.config(font=("Helvetica", int(10 * z)))
+        self.correct_btn.config(font=("Helvetica", int(10 * z)))
+        self.incorrect_btn.config(font=("Helvetica", int(10 * z)))
+        self.help_label.config(font=("Helvetica", int(9 * z)))
+        
+        # Update window geometry
+        new_width = int(900 * z)
+        new_height = int(600 * z)
+        self.root.geometry(f"{new_width}x{new_height}")
 
     def show_answer(self) -> None:
         """
