@@ -289,7 +289,7 @@ class FlashcardApp:
         btn_frame = tk.Frame(self.root)
         btn_frame.pack(anchor="w", pady=(8, 0))
 
-        self.show_btn = tk.Button(btn_frame, text="Show answer (Enter/Space)", command=self.show_answer)
+        self.show_btn = tk.Button(btn_frame, text="Show answer", command=self.show_answer)
         self.show_btn.grid(row=0, column=0, padx=(0, 8))
 
         self.correct_btn = tk.Button(btn_frame, text="Correct", command=self.mark_correct)
@@ -302,11 +302,11 @@ class FlashcardApp:
             self.root,
             text=(
                 "Keyboard shortcuts:\n"
-                "  • Enter / Space  →  Show answer\n"
-                "  • Right arrow (→)  →  Mark correct\n"
-                "  • Left arrow (←)  →  Mark wrong\n"
-                "  • Ctrl +/-  →  Zoom in/out\n"
-                "  • Ctrl 0  →  Reset zoom"
+                "  Enter / Space = Show answer\n"
+                "  Right arrow = Mark correct\n"
+                "  Left arrow = Mark wrong\n"
+                "  Ctrl +/- = Zoom in/out\n"
+                "  Ctrl 0 = Reset zoom"
             ),
             font=("Helvetica", 9),
             fg="#555",
