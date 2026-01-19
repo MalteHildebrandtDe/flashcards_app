@@ -13,7 +13,7 @@ Small Tkinter desktop app to learn open questions from a Markdown file. Stores p
 ## Run without build
 1. Python 3.9+ (optional venv: `python -m venv .venv && source .venv/bin/activate`, Windows: `venv\Scripts\activate`).
 2. Start: `python app.py /path/to/questions.md` or simply `python app.py` and pick via dialog.
-3. Keys: Enter = show answer, Right = correct, Left = wrong. Buttons do the same.
+3. Keys: Enter/Space = show answer, Right = correct, Left = wrong, Ctrl +/- = zoom, Ctrl 0 = reset zoom. Buttons do the same (except zoom).
 4. Progress: written to `.flashcards_progress.json` next to the Markdown deck.
 
 ## Build (PyInstaller)
@@ -27,5 +27,5 @@ Small Tkinter desktop app to learn open questions from a Markdown file. Stores p
 ## Markdown format
 - Questions: `**Frage X**` or `**Question X**` (case-insensitive). The `X` part must be unique per card (number, code, whatever).
 - Answers: `**Antwort:**`, `Antwort:`, `**Answer:**`, or `Answer:` (case-insensitive). Everything until the next question header is taken as the answer if no marker is found.
-- Wrong answers are weighted higher (show up more often); correct answers show up less.
+- Weighting: unseen cards are prioritized; wrong answers are weighted higher; cards with many attempts get slightly lower weight; no immediate repeat of the same card right after a wrong answer.
 - Standard library only; add an icon later with PyInstaller `--icon` if you want.
